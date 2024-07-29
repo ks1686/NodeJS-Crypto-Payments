@@ -26,7 +26,6 @@ if (!walletAddress) {
 
 const horizonEndpoint = "https://horizon-testnet.stellar.org";
 
-// Function to get transactions for an account
 async function getTransactionsForAccount(accountId) {
   let transactions = [];
   let pageToken = null;
@@ -74,14 +73,30 @@ async function getTransactionsForAccount(accountId) {
   }
 }
 
-// Function to filter transactions by memo
+async function getOperationsForTransaction(transactionId) {
+  try {
+    const response = await axios.get(
+      `${horizonEndpoint}/transactions/${transactionId}/operations`,
+      {
+        timeout: 10000, // Set timeout of 10 seconds
+      }
+    );
+    return response.data._embedded.records;
+  } catch (error) {
+    console.error(
+      `Error fetching operations for transaction ${transactionId}:`,
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
 function filterTransactions(transactions, memo) {
   return transactions.filter((tx) => {
     return tx.memo_type === "text" && tx.memo === memo;
   });
 }
 
-// Function to find transactions matching the dynamic memo
 async function findFilteredTransactions(memo) {
   try {
     if (!walletAddress) {
@@ -104,13 +119,12 @@ async function findFilteredTransactions(memo) {
 // Route for '/' to load the crypto_index.ejs file
 app.get("/", async (req, res) => {
   try {
-    const amount = "30"; // Specify the amount
+    const statedAmount = "30"; // Specify the stated amount
     const guid = uuid.v4();
-    // get the memo ID from the guid
-    const memo = guid.replace(/-/g, "").slice(0, 7);
+    const memo = guid.replace(/-/g, "").slice(0, 7); // Generate a unique memo
 
     // Generate the stellar URI
-    const stellarUri = `web+stellar:pay?destination=${walletAddress}&amount=${amount}&memo=${memo}`;
+    const stellarUri = `web+stellar:pay?destination=${walletAddress}&amount=${statedAmount}&memo=${memo}`;
 
     const qrCodeData = await QRCode.toDataURL(stellarUri);
 
@@ -123,7 +137,9 @@ app.get("/", async (req, res) => {
 
     res.render("crypto_index", {
       qr_img_path: "/qrcode.png", // Ensure the path is relative to the static directory
-      paymentMessage: `Stellar Payment\nDestination: ${walletAddress}\nAmount: ${amount}\nMemo: ${memo}`,
+      paymentMessage: `Destination: ${walletAddress}\nAmount: ${statedAmount}\nMemo: ${memo}`,
+      statedAmount: statedAmount, // Pass the stated amount to the frontend
+      actualAmount: null, // Placeholder for actual amount
       memo: memo, // Pass the memo to the frontend for tracking
     });
   } catch (error) {
@@ -145,12 +161,35 @@ app.post("/check_transaction", async (req, res) => {
   const checkTransactions = async () => {
     try {
       const filteredTransactions = await findFilteredTransactions(memo);
+      console.log("Filtered Transactions:", filteredTransactions);
 
       const transaction = filteredTransactions.find((tx) => tx.memo === memo);
+      console.log("Found Transaction:", transaction);
 
       if (transaction) {
         clearInterval(pollingInterval);
-        return res.json({ status: "success", transaction });
+
+        // Get transaction amount
+        const operations = await getOperationsForTransaction(transaction.id);
+        console.log("Operations:", operations);
+
+        const transactionAmount = operations
+          .filter((op) => op.amount) // Filter operations that have amount
+          .map((op) => ({
+            amount: op.amount,
+            asset: op.asset_code || "XLM",
+          }));
+
+        console.log("Transaction Amount:", transactionAmount);
+
+        return res.json({
+          status: "success",
+          transaction,
+          statedAmount:
+            transactionAmount.length > 0 ? transactionAmount[0].amount : "0", // Pass stated amount
+          actualAmount:
+            transactionAmount.length > 0 ? transactionAmount[0].amount : "0", // Pass actual amount
+        });
       }
     } catch (error) {
       console.error("Error checking transactions:", error.message);
