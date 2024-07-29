@@ -24,11 +24,90 @@ if (!walletAddress) {
   process.exit(1);
 }
 
+const horizonEndpoint = "https://horizon-testnet.stellar.org";
+
+// Function to get transactions for an account
+async function getTransactionsForAccount(accountId) {
+  let transactions = [];
+  let pageToken = null;
+
+  try {
+    do {
+      console.log(
+        `Fetching transactions with cursor: ${pageToken || "initial"}`
+      );
+
+      const response = await axios.get(
+        `${horizonEndpoint}/accounts/${accountId}/transactions`,
+        {
+          params: {
+            limit: 200, // Maximum number of records per request
+            cursor: pageToken || undefined, // Use cursor if defined
+          },
+          timeout: 10000, // Set timeout of 10 seconds
+        }
+      );
+
+      if (response.data._embedded.records.length === 0 && pageToken) {
+        console.warn(`No transactions found for cursor: ${pageToken}`);
+        break;
+      }
+
+      transactions = transactions.concat(response.data._embedded.records);
+      console.log(
+        `Fetched ${response.data._embedded.records.length} transactions`
+      );
+
+      const nextLink = response.data._links.next
+        ? new URL(response.data._links.next.href)
+        : null;
+      pageToken = nextLink ? nextLink.searchParams.get("cursor") : null;
+    } while (pageToken);
+
+    return transactions;
+  } catch (error) {
+    console.error(
+      "Error fetching transactions:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
+// Function to filter transactions by memo
+function filterTransactions(transactions, memo) {
+  return transactions.filter((tx) => {
+    return tx.memo_type === "text" && tx.memo === memo;
+  });
+}
+
+// Function to find transactions matching the dynamic memo
+async function findFilteredTransactions(memo) {
+  try {
+    if (!walletAddress) {
+      throw new Error(
+        "Account address is not provided. Set STELLAR_WALLET_ADDRESS in your .env file."
+      );
+    }
+
+    const transactions = await getTransactionsForAccount(walletAddress);
+    const filteredTransactions = filterTransactions(transactions, memo);
+
+    console.log(`Found ${filteredTransactions.length} filtered transactions:`);
+    return filteredTransactions;
+  } catch (error) {
+    console.error("Error:", error.message);
+    throw error;
+  }
+}
+
 // Route for '/' to load the crypto_index.ejs file
 app.get("/", async (req, res) => {
   try {
     const amount = "30"; // Specify the amount
-    const memo = uuid.v4();
+    const guid = uuid.v4();
+    // get the memo ID from the guid
+    const memo = guid.replace(/-/g, "").slice(0, 7);
 
     // Generate the stellar URI
     const stellarUri = `web+stellar:pay?destination=${walletAddress}&amount=${amount}&memo=${memo}`;
@@ -45,6 +124,7 @@ app.get("/", async (req, res) => {
     res.render("crypto_index", {
       qr_img_path: "/qrcode.png", // Ensure the path is relative to the static directory
       paymentMessage: `Stellar Payment\nDestination: ${walletAddress}\nAmount: ${amount}\nMemo: ${memo}`,
+      memo: memo, // Pass the memo to the frontend for tracking
     });
   } catch (error) {
     console.error("Error generating QR code:", error);
@@ -54,34 +134,39 @@ app.get("/", async (req, res) => {
 
 // Route to check the transaction status
 app.post("/check_transaction", async (req, res) => {
-  const { tx_hash } = req.body;
+  const { memo } = req.body;
 
-  try {
-    const response = await axios.get(
-      `https://horizon.stellar.org/transactions/${tx_hash}`
-    );
-    const transaction = response.data;
-
-    if (transaction) {
-      res.json({
-        status: "Success",
-        message: `Transaction ${tx_hash} found. Status: ${
-          transaction.successful ? "Successful" : "Failed"
-        }`,
-      });
-    } else {
-      res.json({
-        status: "Failed",
-        message: "Transaction not found.",
-      });
-    }
-  } catch (error) {
-    console.error("Error checking transaction:", error);
-    res.status(500).json({
-      status: "Error",
-      message: "Error checking transaction.",
-    });
+  if (!memo) {
+    return res.status(400).send("Memo is required.");
   }
+
+  const interval = 5000; // Poll every 5 seconds
+
+  const checkTransactions = async () => {
+    try {
+      const filteredTransactions = await findFilteredTransactions(memo);
+
+      const transaction = filteredTransactions.find((tx) => tx.memo === memo);
+
+      if (transaction) {
+        clearInterval(pollingInterval);
+        return res.json({ status: "success", transaction });
+      }
+    } catch (error) {
+      console.error("Error checking transactions:", error.message);
+    }
+  };
+
+  const pollingInterval = setInterval(checkTransactions, interval);
+
+  // Set a timeout to stop polling after a reasonable amount of time
+  setTimeout(() => {
+    clearInterval(pollingInterval);
+    res.status(200).json({
+      status: "timeout",
+      message: "Transaction not found within the time limit.",
+    });
+  }, 60000); // Timeout after 1 minute
 });
 
 // Start the server

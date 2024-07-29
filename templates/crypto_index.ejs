@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wallet QR Code & Ethereum Transaction Check</title>
+    <title>Wallet QR Code & XLM Transaction Check</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -14,57 +14,58 @@
         max-width: 300px;
         margin: auto;
       }
-      #check-transaction-form {
-        display: inline-block;
-        text-align: left;
-        margin-top: 50px;
-      }
-      #check-transaction-form label,
-      #check-transaction-form input {
-        display: block;
-        margin-bottom: 10px;
-      }
       #result {
         margin-top: 20px;
-        text-align: left;
       }
     </style>
   </head>
   <body>
     <h1>Wallet QR Code</h1>
     <img class="qr-code" src="<%= qr_img_path %>" alt="Wallet QR Code" />
-    <!-- use the paymentMessage to give details under the QR code-->
+    <!-- Use the paymentMessage to give details under the QR code -->
     <p><%= paymentMessage %></p>
-    <h2>Check XLM Transaction</h2>
-    <form id="check-transaction-form">
-      <label for="tx_hash">Transaction Hash:</label>
-      <input type="text" id="tx_hash" name="tx_hash" required /><br /><br />
-      <button type="submit">Check Transaction</button>
-    </form>
 
     <div id="result"></div>
 
     <script>
-      document
-        .getElementById("check-transaction-form")
-        .addEventListener("submit", function (event) {
-          event.preventDefault();
-
-          const txHash = document.getElementById("tx_hash").value;
-
-          fetch("/check_transaction", {
+      // Function to poll the server for transaction status
+      async function pollTransactionStatus(memo) {
+        try {
+          const response = await fetch("/check_transaction", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ tx_hash: txHash }),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              const resultDiv = document.getElementById("result");
-              resultDiv.innerHTML = `<p>Status: ${data.status}</p><p>Message: ${data.message}</p><p>`;
-            })
-            .catch((error) => console.error("Error:", error));
-        });
+            body: JSON.stringify({ memo }),
+          });
+          const data = await response.json();
+
+          if (data.status === "success") {
+            document.getElementById("result").innerHTML = `
+              <h2>Transaction Confirmed!</h2>
+              <p>Transaction ID: ${data.transaction.id}</p>
+              <p>Amount: ${data.transaction.amount} ${
+              data.transaction.asset_code || "XLM"
+            }</p>
+            `;
+          } else if (data.status === "timeout") {
+            document.getElementById("result").innerHTML = `
+              <h2>Transaction Not Found</h2>
+              <p>${data.message}</p>
+            `;
+          }
+        } catch (error) {
+          console.error("Error polling transaction status:", error);
+        }
+      }
+
+      // Extract the memo from the server-rendered value
+      const memo = "<%= memo %>";
+
+      // Start polling for the transaction status
+      if (memo) {
+        pollTransactionStatus(memo);
+      }
     </script>
+  </body>
 </html>
