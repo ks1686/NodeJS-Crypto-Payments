@@ -55,10 +55,54 @@ async function getTransactionsForAccount(accountId) {
   }
 }
 
+async function getOperationsForTransaction(transactionId) {
+  try {
+    const response = await axios.get(
+      `${horizonEndpoint}/transactions/${transactionId}/operations`,
+      {
+        timeout: 10000, // Set timeout of 10 seconds
+      }
+    );
+    return response.data._embedded.records;
+  } catch (error) {
+    console.error(
+      `Error fetching operations for transaction ${transactionId}:`,
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+}
+
 function filterTransactions(transactions, memo) {
   return transactions.filter((tx) => {
     return tx.memo_type === "text" && tx.memo === memo;
   });
+}
+
+async function printTransactionAmounts(transactions) {
+  for (const tx of transactions) {
+    console.log(`Transaction ID: ${tx.id}`);
+
+    try {
+      const operations = await getOperationsForTransaction(tx.id);
+      if (operations.length === 0) {
+        console.log("No operations found for this transaction.");
+      } else {
+        operations.forEach((op) => {
+          if (op.amount) {
+            console.log(`Amount: ${op.amount} ${op.asset_code || "XLM"}`);
+          } else {
+            console.log("No amount found in this operation.");
+          }
+        });
+      }
+    } catch (error) {
+      console.error(
+        `Error processing operations for transaction ${tx.id}:`,
+        error.message
+      );
+    }
+  }
 }
 
 async function findFilteredTransactions() {
@@ -73,9 +117,7 @@ async function findFilteredTransactions() {
     const filteredTransactions = filterTransactions(transactions, memoToFilter);
 
     console.log(`Found ${filteredTransactions.length} filtered transactions:`);
-    filteredTransactions.forEach((tx) => {
-      console.log(tx);
-    });
+    await printTransactionAmounts(filteredTransactions);
   } catch (error) {
     console.error("Error:", error.message);
   }
