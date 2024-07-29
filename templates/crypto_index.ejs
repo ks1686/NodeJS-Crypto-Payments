@@ -3,69 +3,113 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wallet QR Code & XLM Transaction Check</title>
+    <title>Stellar Payment</title>
     <style>
       body {
         font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      header {
+        background-color: #004d40;
+        color: #fff;
+        padding: 1rem;
         text-align: center;
-        margin: 50px;
+      }
+      .container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        margin: 0;
+        font-size: 2rem;
       }
       .qr-code {
-        max-width: 300px;
-        margin: auto;
+        display: block;
+        margin: 1rem auto;
+        max-width: 100%;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+      }
+      p {
+        font-size: 1rem;
+        line-height: 1.5;
       }
       #result {
-        margin-top: 20px;
+        margin-top: 1rem;
+        color: #d32f2f;
+      }
+      #success-message {
+        margin-top: 1rem;
+        color: #388e3c;
       }
     </style>
   </head>
   <body>
-    <h1>Wallet QR Code</h1>
-    <img class="qr-code" src="<%= qr_img_path %>" alt="Wallet QR Code" />
-    <!-- Use the paymentMessage to give details under the QR code -->
-    <p><%= paymentMessage %></p>
+    <header>
+      <h1>Stellar Payment</h1>
+    </header>
+    <div class="container">
+      <img class="qr-code" src="<%= qr_img_path %>" alt="Wallet QR Code" />
 
-    <div id="result"></div>
+      <!-- Display payment message with HTML line breaks -->
+      <p><%- paymentMessage.replace(/\n/g, '<br />') %></p>
+
+      <p>Stated Amount: <strong><%= statedAmount %> XLM</strong></p>
+      <p id="actual-amount">
+        Actual Amount: <strong><%= actualAmount %> XLM</strong>
+      </p>
+
+      <div id="result"></div>
+      <div id="success-message"></div>
+    </div>
 
     <script>
-      // Function to poll the server for transaction status
-      async function pollTransactionStatus(memo) {
+      // JavaScript to update the actual amount after transaction confirmation
+      async function updateActualAmount() {
         try {
           const response = await fetch("/check_transaction", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ memo }),
+            body: JSON.stringify({ memo: "<%= memo %>" }),
           });
-          const data = await response.json();
 
-          if (data.status === "success") {
-            document.getElementById("result").innerHTML = `
-              <h2>Transaction Confirmed!</h2>
-              <p>Transaction ID: ${data.transaction.id}</p>
-              <p>Amount: ${data.transaction.amount} ${
-              data.transaction.asset_code || "XLM"
-            }</p>
-            `;
-          } else if (data.status === "timeout") {
-            document.getElementById("result").innerHTML = `
-              <h2>Transaction Not Found</h2>
-              <p>${data.message}</p>
-            `;
+          const result = await response.json();
+          if (result.status === "success") {
+            document.getElementById(
+              "actual-amount"
+            ).innerHTML = `Actual Amount: <strong>${result.actualAmount} XLM</strong>`;
+
+            // Display success message if transaction amount is greater or equal to stated amount
+            if (result.actualAmount >= "<%= statedAmount %>") {
+              document.getElementById("result").textContent = "";
+              document.getElementById("success-message").textContent =
+                "Transaction successful";
+            } else {
+              document.getElementById("result").textContent =
+                "Transaction amount is less than stated amount. Please reattempt the transaction";
+              document.getElementById("success-message").textContent = "";
+            }
+          } else {
+            document.getElementById("result").textContent =
+              "Transaction not found.";
+            document.getElementById("success-message").textContent = "";
           }
         } catch (error) {
-          console.error("Error polling transaction status:", error);
+          console.error("Error:", error);
         }
       }
 
-      // Extract the memo from the server-rendered value
-      const memo = "<%= memo %>";
-
-      // Start polling for the transaction status
-      if (memo) {
-        pollTransactionStatus(memo);
-      }
+      // Call the function to update actual amount
+      updateActualAmount();
     </script>
   </body>
 </html>
