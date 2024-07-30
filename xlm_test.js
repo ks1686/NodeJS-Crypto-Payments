@@ -24,7 +24,7 @@ if (!walletAddress) {
   process.exit(1);
 }
 
-const horizonEndpoint = "https://horizon-testnet.stellar.org";
+const horizonEndpoint = process.env.STELLAR_EXPLORER;
 
 async function getTransactionsForAccount(accountId) {
   let transactions = [];
@@ -116,7 +116,7 @@ async function findFilteredTransactions(memo) {
   }
 }
 
-// Route for '/' to load the crypto_index.ejs file
+// Route for '/' to load the xlm_index.ejs file
 app.get("/", async (req, res) => {
   try {
     const statedAmount = "30"; // Specify the stated amount
@@ -135,7 +135,7 @@ app.get("/", async (req, res) => {
       "base64"
     );
 
-    res.render("crypto_index", {
+    res.render("xlm_index", {
       qr_img_path: "/qrcode.png", // Ensure the path is relative to the static directory
       paymentMessage: `Destination: ${walletAddress}\nAmount: ${statedAmount}\nMemo: ${memo}`,
       statedAmount: statedAmount, // Pass the stated amount to the frontend
