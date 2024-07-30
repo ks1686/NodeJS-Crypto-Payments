@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ethereum Payment</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      header {
+        background-color: #004d40;
+        color: #fff;
+        padding: 1rem;
+        text-align: center;
+      }
+      .container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+      .qr-code {
+        display: block;
+        margin: 1rem auto;
+        max-width: 100%;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+      }
+      p {
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+      #result {
+        margin-top: 1rem;
+        color: #d32f2f;
+      }
+      #success-message {
+        margin-top: 1rem;
+        color: #388e3c;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Ethereum Payment</h1>
+    </header>
+    <div class="container">
+      <img class="qr-code" src="<%= qr_img_path %>" alt="Wallet QR Code" />
+
+      <p>Please scan the QR code or send 1 ETH to the following address:</p>
+      <p><strong><%= wallet_address %></strong></p>
+
+      <div id="result"></div>
+      <div id="success-message"></div>
+    </div>
+
+    <script>
+      async function pollTransaction() {
+        try {
+          const response = await fetch("/poll_transaction", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const result = await response.json();
+          if (result.status === "success") {
+            document.getElementById("result").textContent = "";
+            document.getElementById("success-message").textContent =
+              "Transaction successful: 1 ETH received!";
+          } else {
+            document.getElementById("result").textContent =
+              "No transaction found within the time limit.";
+            document.getElementById("success-message").textContent = "";
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          document.getElementById("result").textContent =
+            "An error occurred while checking the transaction.";
+          document.getElementById("success-message").textContent = "";
+        }
+      }
+
+      // Call the function to start polling for the transaction
+      pollTransaction();
+    </script>
+  </body>
+</html>
