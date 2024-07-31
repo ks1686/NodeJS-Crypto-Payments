@@ -33,7 +33,7 @@ async function getTransactionsForAccount(accountId) {
   try {
     do {
       console.log(
-        `Fetching transactions with cursor: ${pageToken || "initial"}`
+        `Fetching transactions with cursor: ${pageToken || "initial"}`,
       );
 
       const response = await axios.get(
@@ -44,7 +44,7 @@ async function getTransactionsForAccount(accountId) {
             cursor: pageToken || undefined, // Use cursor if defined
           },
           timeout: 10000, // Set timeout of 10 seconds
-        }
+        },
       );
 
       if (response.data._embedded.records.length === 0 && pageToken) {
@@ -54,7 +54,7 @@ async function getTransactionsForAccount(accountId) {
 
       transactions = transactions.concat(response.data._embedded.records);
       console.log(
-        `Fetched ${response.data._embedded.records.length} transactions`
+        `Fetched ${response.data._embedded.records.length} transactions`,
       );
 
       const nextLink = response.data._links.next
@@ -67,7 +67,7 @@ async function getTransactionsForAccount(accountId) {
   } catch (error) {
     console.error(
       "Error fetching transactions:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -79,13 +79,13 @@ async function getOperationsForTransaction(transactionId) {
       `${horizonEndpoint}/transactions/${transactionId}/operations`,
       {
         timeout: 10000, // Set timeout of 10 seconds
-      }
+      },
     );
     return response.data._embedded.records;
   } catch (error) {
     console.error(
       `Error fetching operations for transaction ${transactionId}:`,
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -101,7 +101,7 @@ async function findFilteredTransactions(memo) {
   try {
     if (!walletAddress) {
       throw new Error(
-        "Account address is not provided. Set STELLAR_WALLET_ADDRESS in your .env file."
+        "Account address is not provided. Set STELLAR_WALLET_ADDRESS in your .env file.",
       );
     }
 
@@ -132,7 +132,7 @@ app.get("/", async (req, res) => {
     fs.writeFileSync(
       qrImagePath,
       qrCodeData.replace(/^data:image\/png;base64,/, ""),
-      "base64"
+      "base64",
     );
 
     res.render("xlm_index", {
