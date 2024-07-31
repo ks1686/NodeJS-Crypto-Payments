@@ -34,10 +34,6 @@ async function getTransactionsForAccount(accountId) {
 
   try {
     do {
-      console.log(
-        `Fetching transactions with cursor: ${pageToken || "initial"}`,
-      );
-
       // Fetch transactions for the account
       const response = await axios.get(
         `${horizonEndpoint}/accounts/${accountId}/transactions`,
@@ -58,9 +54,6 @@ async function getTransactionsForAccount(accountId) {
 
       // Concatenate the transactions
       transactions = transactions.concat(response.data._embedded.records);
-      console.log(
-        `Fetched ${response.data._embedded.records.length} transactions`,
-      );
 
       // Get the next page token
       const nextLink = response.data._links.next
@@ -118,8 +111,6 @@ async function findFilteredTransactions(memo) {
     // Get transactions for the account
     const transactions = await getTransactionsForAccount(walletAddress);
     const filteredTransactions = filterTransactions(transactions, memo);
-
-    console.log(`Found ${filteredTransactions.length} filtered transactions:`);
     return filteredTransactions;
   } catch (error) {
     console.error("Error:", error.message);
@@ -173,7 +164,6 @@ app.post("/check_transaction", async (req, res) => {
   const checkTransactions = async () => {
     try {
       const filteredTransactions = await findFilteredTransactions(memo);
-      console.log("Filtered Transactions:", filteredTransactions);
 
       // Find the transaction with the memo
       const transaction = filteredTransactions.find((tx) => tx.memo === memo);
