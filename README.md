@@ -4,7 +4,9 @@ A test program that showcases functionality of accepting XLM or ETH as payment f
 
 To start:
 
-* Install necessary packages using your preferred package manager
+* Ensure NodeJS is installed on your system
+* Install necessary packages using your preferred package manager to project directory (ex: _npm install_)
 * Create a .env file and populate your STELLAR_WALLET_ADDRESS and/or ETHEREUM_WALLET_ADDESS
-* Specify in the backend code whether to use the testnet or mainnet for Stellar/Ethereum (depends on the program you use)
-* Modify code to your own preferences
+* Implement ETHEREUM_EXPLORER=https://api-sepolia.etherscan.io/api or STELLAR_EXPLORER=https://horizon-testnet.stellar.org in your .env file
+* Select the respective code you want to use (XLM or ETH) and modify the code to your own preferences
+* Run the code using your preferred method (ex: _node index.js_)

@@ -24,8 +24,10 @@ if (!walletAddress) {
   process.exit(1);
 }
 
+// Explorer endpoint for Stellar
 const horizonEndpoint = process.env.STELLAR_EXPLORER;
 
+// Function to get transactions for an account
 async function getTransactionsForAccount(accountId) {
   let transactions = [];
   let pageToken = null;
@@ -36,6 +38,7 @@ async function getTransactionsForAccount(accountId) {
         `Fetching transactions with cursor: ${pageToken || "initial"}`,
       );
 
+      // Fetch transactions for the account
       const response = await axios.get(
         `${horizonEndpoint}/accounts/${accountId}/transactions`,
         {
@@ -47,16 +50,19 @@ async function getTransactionsForAccount(accountId) {
         },
       );
 
+      // If no transactions are found and there is a cursor, break the loop
       if (response.data._embedded.records.length === 0 && pageToken) {
         console.warn(`No transactions found for cursor: ${pageToken}`);
         break;
       }
 
+      // Concatenate the transactions
       transactions = transactions.concat(response.data._embedded.records);
       console.log(
         `Fetched ${response.data._embedded.records.length} transactions`,
       );
 
+      // Get the next page token
       const nextLink = response.data._links.next
         ? new URL(response.data._links.next.href)
         : null;
@@ -73,8 +79,10 @@ async function getTransactionsForAccount(accountId) {
   }
 }
 
+// Function to get operations for a transaction
 async function getOperationsForTransaction(transactionId) {
   try {
+    // Fetch operations for the transaction
     const response = await axios.get(
       `${horizonEndpoint}/transactions/${transactionId}/operations`,
       {
@@ -91,12 +99,14 @@ async function getOperationsForTransaction(transactionId) {
   }
 }
 
+// Function to filter transactions by memo
 function filterTransactions(transactions, memo) {
   return transactions.filter((tx) => {
     return tx.memo_type === "text" && tx.memo === memo;
   });
 }
 
+// Function to find filtered transactions by memo
 async function findFilteredTransactions(memo) {
   try {
     if (!walletAddress) {
@@ -105,6 +115,7 @@ async function findFilteredTransactions(memo) {
       );
     }
 
+    // Get transactions for the account
     const transactions = await getTransactionsForAccount(walletAddress);
     const filteredTransactions = filterTransactions(transactions, memo);
 
@@ -123,11 +134,11 @@ app.get("/", async (req, res) => {
     const guid = uuid.v4();
     const memo = guid.replace(/-/g, "").slice(0, 7); // Generate a unique memo
 
-    // Generate the stellar URI
+    // Generate a Stellar URI (replace this with just the wallet address if your test wallets don't support URIs)
     const stellarUri = `web+stellar:pay?destination=${walletAddress}&amount=${statedAmount}&memo=${memo}`;
 
+    // Generate a QR code for the data
     const qrCodeData = await QRCode.toDataURL(stellarUri);
-
     const qrImagePath = path.join(__dirname, "static", "qrcode.png");
     fs.writeFileSync(
       qrImagePath,
@@ -135,6 +146,7 @@ app.get("/", async (req, res) => {
       "base64",
     );
 
+    // Render the index page with the QR code
     res.render("xlm_index", {
       qr_img_path: "/qrcode.png", // Ensure the path is relative to the static directory
       paymentMessage: `Destination: ${walletAddress}\nAmount: ${statedAmount}\nMemo: ${memo}`,
@@ -150,38 +162,34 @@ app.get("/", async (req, res) => {
 
 // Route to check the transaction status
 app.post("/check_transaction", async (req, res) => {
+  // Get the memo from the request body
   const { memo } = req.body;
-
   if (!memo) {
     return res.status(400).send("Memo is required.");
   }
 
-  const interval = 5000; // Poll every 5 seconds
-
+  // Poll for transactions with the memo until one is found (frequency: 5 seconds)
+  const interval = 5000;
   const checkTransactions = async () => {
     try {
       const filteredTransactions = await findFilteredTransactions(memo);
       console.log("Filtered Transactions:", filteredTransactions);
 
+      // Find the transaction with the memo
       const transaction = filteredTransactions.find((tx) => tx.memo === memo);
-      console.log("Found Transaction:", transaction);
-
       if (transaction) {
         clearInterval(pollingInterval);
 
         // Get transaction amount
         const operations = await getOperationsForTransaction(transaction.id);
-        console.log("Operations:", operations);
-
         const transactionAmount = operations
-          .filter((op) => op.amount) // Filter operations that have amount
+          .filter((op) => op.amount)
           .map((op) => ({
             amount: op.amount,
             asset: op.asset_code || "XLM",
           }));
 
-        console.log("Transaction Amount:", transactionAmount);
-
+        // Return the transaction details
         return res.json({
           status: "success",
           transaction,
@@ -196,9 +204,8 @@ app.post("/check_transaction", async (req, res) => {
     }
   };
 
-  const pollingInterval = setInterval(checkTransactions, interval);
-
   // Set a timeout to stop polling after a reasonable amount of time
+  const pollingInterval = setInterval(checkTransactions, interval);
   setTimeout(() => {
     clearInterval(pollingInterval);
     res.status(200).json({
