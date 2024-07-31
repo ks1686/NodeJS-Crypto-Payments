@@ -42,7 +42,7 @@ app.get("/", async (req, res) => {
     fs.writeFileSync(
       qrImagePath,
       qrCodeData.replace(/^data:image\/png;base64,/, ""),
-      "base64"
+      "base64",
     );
 
     // Get the current block number
@@ -57,7 +57,7 @@ app.get("/", async (req, res) => {
   } catch (error) {
     console.error(
       "Error generating QR code or getting current block number:",
-      error
+      error,
     );
     res
       .status(500)
