@@ -4,14 +4,13 @@ const path = require("path");
 const dotenv = require("dotenv");
 const axios = require("axios");
 const QRCode = require("qrcode");
-const bodyParser = require("body-parser");
 
 // Load environment variables
 dotenv.config();
 
 // Initialize Express
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "static")));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "templates"));
