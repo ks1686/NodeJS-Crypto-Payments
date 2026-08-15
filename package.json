@@ -1,12 +1,19 @@
 {
-	"dependencies": {
-		"axios": "^1.7.3",
-		"dotenv": "^16.4.5",
-		"ejs": "^3.1.10",
-		"express": "^4.19.2",
-		"fs": "0.0.1-security",
-		"path": "^0.12.7",
-		"qrcode": "^1.5.3",
-		"uuid": "^10.0.0"
-	}
+  "name": "crypto-payment-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test 'test/**/*.test.js'"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "qrcode": "^1.5.3"
+  }
 }
