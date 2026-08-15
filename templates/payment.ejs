@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1><%= title %></h1>
+    </header>
+    <div class="container">
+      <img class="qr-code" src="<%= qrDataUrl %>" alt="Payment QR Code" />
+
+      <p>
+        Send <strong><%= displayAmount %> <%= unit %></strong> to
+        <strong><%= invoice.destination %></strong>
+      </p>
+      <% if (invoice.memo) { %>
+      <p>Memo (required): <strong><%= invoice.memo %></strong></p>
+      <% } %>
+      <p>Invoice: <code><%= invoice.id %></code></p>
+      <p>Expires: <span id="expires"><%= new Date(invoice.expiresAt).toISOString() %></span></p>
+
+      <p id="status">Status: <strong><%= invoice.status %></strong></p>
+      <p id="received">Received: <strong><%= invoice.receivedAmount ?? "—" %> <%= unit %></strong></p>
+      <div id="result"><%= invoice.status === "pending" ? "" : invoice.message %></div>
+      <div id="success-message"></div>
+    </div>
+
+    <script>
+      const invoiceId = <%- JSON.stringify(invoice.id) %>;
+      const unit = <%- JSON.stringify(unit) %>;
+      const terminal = new Set(["paid", "underpaid", "expired"]);
+      let timer = null;
+
+      function render(result) {
+        document.getElementById("status").innerHTML =
+          `Status: <strong>${result.status}</strong>`;
+        document.getElementById("received").innerHTML =
+          `Received: <strong>${result.receivedAmount ?? "—"} ${unit}</strong>`;
+
+        const resultEl = document.getElementById("result");
+        const successEl = document.getElementById("success-message");
+        if (result.status === "paid") {
+          resultEl.textContent = "";
+          successEl.textContent = result.message;
+        } else if (result.status === "pending") {
+          resultEl.textContent = "";
+          successEl.textContent = "";
+        } else {
+          resultEl.textContent = result.message;
+          successEl.textContent = "";
+        }
+      }
+
+      async function pollOnce() {
+        const response = await fetch(`/api/invoices/${invoiceId}`);
+        if (!response.ok) {
+          throw new Error("status request failed");
+        }
+        return response.json();
+      }
+
+      async function tick() {
+        try {
+          const result = await pollOnce();
+          render(result);
+          if (terminal.has(result.status)) {
+            clearInterval(timer);
+            timer = null;
+          }
+        } catch (error) {
+          console.error(error);
+          document.getElementById("result").textContent =
+            "An error occurred while checking the transaction.";
+        }
+      }
+
+      function stop() {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stop();
+        } else if (!timer) {
+          timer = setInterval(tick, 5000);
+          tick();
+        }
+      });
+
+      timer = setInterval(tick, 5000);
+      tick();
+    </script>
+  </body>
+</html>
