@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node src/index.js",
     "demo": "node scripts/demo.js",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.js",
     "lint": "eslint ."
   },
   "dependencies": {
