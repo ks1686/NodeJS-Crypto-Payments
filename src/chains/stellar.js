@@ -1,4 +1,5 @@
 import { STROOP_DECIMALS, parseDecimalToMinor } from "../util/amounts.js";
+import { ChainError } from "../errors.js";
 
 function memoOf(record) {
   return record.transaction?.memo ?? record.memo ?? null;
@@ -20,8 +21,17 @@ export function createStellarClient({
     url.searchParams.set("order", "desc");
     url.searchParams.set("limit", "1");
 
-    const response = await fetchImpl(url);
-    const body = await response.json();
+    let body;
+    try {
+      const response = await fetchImpl(url);
+      body = await response.json();
+    } catch (error) {
+      throw new ChainError("could not reach the Stellar Horizon server", {
+        chain: "stellar",
+        cause: error,
+      });
+    }
+
     const records = body?._embedded?.records;
     if (!Array.isArray(records) || records.length === 0) {
       return "0";

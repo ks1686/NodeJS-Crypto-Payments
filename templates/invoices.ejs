@@ -1,0 +1,37 @@
+<%- include("partials/header", { title }) %>
+    <main class="container">
+      <% if (invoices.length === 0) { %>
+        <p>No invoices yet.</p>
+        <p class="actions">
+          <a class="button" href="/pay/eth">Create an ETH invoice</a>
+          <a class="button button-secondary" href="/pay/xlm">Create an XLM invoice</a>
+        </p>
+      <% } else { %>
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th scope="col">Asset</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Status</th>
+              <th scope="col">Invoice</th>
+              <th scope="col">Expires</th>
+              <th scope="col">Tx</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% for (const inv of invoices) { %>
+            <tr>
+              <td><%= inv.asset.toUpperCase() %></td>
+              <td><%= inv.expectedAmount %></td>
+              <td><span class="badge badge-<%= inv.status %>"><%= inv.status %></span></td>
+              <td><a href="/api/invoices/<%= inv.id %>"><code><%= inv.id.slice(0, 12) %>…</code></a></td>
+              <td><%= new Date(inv.expiresAt).toISOString().replace("T", " ").slice(0, 16) %> UTC</td>
+              <td><% if (inv.txHash) { %><code title="<%= inv.txHash %>"><%= inv.txHash.slice(0, 10) %>…</code><% } else { %>—<% } %></td>
+            </tr>
+            <% } %>
+          </tbody>
+        </table>
+        <p><a href="/">Create a new invoice →</a></p>
+      <% } %>
+    </main>
+<%- include("partials/footer") %>

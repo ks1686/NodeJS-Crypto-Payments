@@ -1,21 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Crypto Payment Demo</title>
-    <link rel="stylesheet" href="/static/styles.css" />
-  </head>
-  <body>
-    <header>
-      <h1>Crypto Payment Demo</h1>
-    </header>
+<%- include("partials/header") %>
     <div class="container">
-      <p>Create a testnet invoice. Each payment has its own id, amount, and expiry.</p>
-      <p class="actions">
-        <a class="button" href="/pay/eth">Pay with ETH</a>
-        <a class="button" href="/pay/xlm">Pay with XLM</a>
+      <p class="tagline">
+        Create a testnet invoice. Each payment gets its own id, amount, and
+        expiry.
       </p>
+      <div class="actions">
+        <a class="button" href="/pay/eth">Pay with ETH</a>
+        <a class="button button-secondary" href="/pay/xlm">Pay with XLM</a>
+        <a class="link-muted" href="/invoices">View all invoices →</a>
+        <span id="api-indicator" aria-live="polite"></span>
+      </div>
     </div>
-  </body>
-</html>
+    <script src="/static/home.js"></script>
+<%- include("partials/footer") %>

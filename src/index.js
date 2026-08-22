@@ -16,7 +16,7 @@ try {
   process.exit(1);
 }
 
-const store = new InvoiceStore();
+const store = new InvoiceStore({ file: config.dataFile || null });
 const invoices = new InvoiceService({
   store,
   config,
@@ -34,11 +34,17 @@ const invoices = new InvoiceService({
 const app = createApp({ invoices });
 const server = app.listen(config.port, () => {
   console.log(`Server running on http://localhost:${config.port}`);
+  if (config.dataFile) {
+    console.log(`Invoices persist to ${config.dataFile}`);
+  }
 });
 
 function shutdown(signal) {
   console.log(`Received ${signal}, shutting down`);
+  store.flush();
   server.close(() => process.exit(0));
+  // Failsafe in case keep-alive connections hold server.close() open.
+  setTimeout(() => process.exit(0), 5_000).unref();
 }
 
 process.on("SIGINT", () => shutdown("SIGINT"));
