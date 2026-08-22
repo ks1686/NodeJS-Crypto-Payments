@@ -3,17 +3,24 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "description": "Testnet demo API that accepts XLM or ETH invoices with QR codes, expiry, and automatic settlement checks.",
+  "license": "MIT",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test 'test/**/*.test.js'"
+    "demo": "node scripts/demo.js",
+    "test": "node --test 'test/**/*.test.js'",
+    "lint": "eslint ."
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "qrcode": "^1.5.3"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
   }
 }

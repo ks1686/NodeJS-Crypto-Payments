@@ -1,3 +1,5 @@
 node_modules
 .env
-static/qrcode.png
+data/
+*.log
+.DS_Store

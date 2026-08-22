@@ -10,7 +10,12 @@ const DEFAULTS = {
   ETH_AMOUNT_WEI: "100000000000000000",
   XLM_AMOUNT_STROOPS: "300000000",
   ETH_CONFIRMATIONS: "1",
+  DATA_FILE: "",
 };
+
+// EIP-681 chain id for Sepolia so wallet QR scans stay on testnet instead of
+// defaulting to Ethereum mainnet. Mainnet URIs carry no chain id.
+const ETHEREUM_TESTNET_CHAIN_ID = "11155111";
 
 function required(env, name) {
   const value = env[name]?.trim();
@@ -25,13 +30,21 @@ function optional(env, name) {
   return value || DEFAULTS[name];
 }
 
-function parsePositiveInt(name, value) {
+function parseNonNegativeInt(name, value) {
   if (!/^\d+$/.test(value)) {
-    throw new Error(`${name} must be a positive integer`);
+    throw new Error(`${name} must be a non-negative integer`);
   }
   const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    throw new Error(`${name} must be a safe non-negative integer`);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${name} must be a safe integer`);
+  }
+  return parsed;
+}
+
+function parsePositiveInt(name, value) {
+  const parsed = parseNonNegativeInt(name, value);
+  if (parsed < 1) {
+    throw new Error(`${name} must be at least 1`);
   }
   return parsed;
 }
@@ -63,6 +76,9 @@ export function loadConfig(env = process.env) {
     optional(env, "XLM_AMOUNT_STROOPS"),
   );
 
+  const ethExplorer = optional(env, "ETHEREUM_EXPLORER");
+  const stellarExplorer = optional(env, "STELLAR_EXPLORER").replace(/\/$/, "");
+
   return {
     network,
     allowMainnet,
@@ -71,19 +87,21 @@ export function loadConfig(env = process.env) {
       "PAYMENT_TTL_MS",
       optional(env, "PAYMENT_TTL_MS"),
     ),
+    dataFile: optional(env, "DATA_FILE"),
     ethereum: {
       walletAddress: required(env, "ETHEREUM_WALLET_ADDRESS"),
-      explorer: optional(env, "ETHEREUM_EXPLORER"),
+      explorer: ethExplorer,
       apiKey: required(env, "ETHERSCAN_API_KEY"),
       amountWei: ethAmountWei,
       confirmations: parsePositiveInt(
         "ETH_CONFIRMATIONS",
         optional(env, "ETH_CONFIRMATIONS"),
       ),
+      chainId: network === "testnet" ? ETHEREUM_TESTNET_CHAIN_ID : null,
     },
     stellar: {
       walletAddress: required(env, "STELLAR_WALLET_ADDRESS"),
-      explorer: optional(env, "STELLAR_EXPLORER").replace(/\/$/, ""),
+      explorer: stellarExplorer,
       amountStroops: xlmAmountStroops,
     },
     display: {

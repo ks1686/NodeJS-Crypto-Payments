@@ -1,0 +1,23 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Replace these (or use env_file: .env) for real testnet use.
+      STELLAR_WALLET_ADDRESS: GDEMOACCOUNT11111111111111111111111111111111111111111111
+      ETHEREUM_WALLET_ADDRESS: "0xdemo00000000000000000000000000000000c0ffee"
+      ETHERSCAN_API_KEY: demo-key-not-real
+      STELLAR_EXPLORER: http://mock:4311
+      ETHEREUM_EXPLORER: http://mock:4311/api
+      NETWORK: testnet
+    depends_on:
+      - mock
+
+  # Bundled fake explorer so `docker compose up` is a zero-config demo.
+  # Remove this service and set real explorer URLs/keys for testnet use.
+  mock:
+    build: .
+    command: ["node", "mock/chain.js"]
+    expose:
+      - "4311"

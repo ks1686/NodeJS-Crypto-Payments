@@ -1,3 +1,5 @@
+import { ChainError } from "../errors.js";
+
 async function readJson(response) {
   const text = await response.text();
   try {
@@ -19,11 +21,23 @@ export function createEthereumClient({
     url.searchParams.set("action", "eth_blockNumber");
     url.searchParams.set("apikey", apiKey);
 
-    const response = await fetchImpl(url);
-    const body = await readJson(response);
+    let body;
+    try {
+      const response = await fetchImpl(url);
+      body = await readJson(response);
+    } catch (error) {
+      throw new ChainError("could not reach the Ethereum explorer", {
+        chain: "ethereum",
+        cause: error,
+      });
+    }
+
     const hex = body?.result;
     if (typeof hex !== "string" || !hex.startsWith("0x")) {
-      throw new Error("etherscan did not return a block number");
+      throw new ChainError(
+        "the Ethereum explorer rejected this API key or request",
+        { chain: "ethereum" },
+      );
     }
     return Number.parseInt(hex, 16);
   }

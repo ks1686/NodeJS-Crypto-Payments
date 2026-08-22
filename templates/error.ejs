@@ -1,0 +1,10 @@
+<%- include("partials/header", { title }) %>
+    <main class="container error-container">
+      <h2><%= heading %></h2>
+      <p><%= detail %></p>
+      <p class="actions">
+        <a class="button" href="<%= retryHref %>">Try again</a>
+        <a class="button button-secondary" href="/">Back to start</a>
+      </p>
+    </main>
+<%- include("partials/footer") %>
